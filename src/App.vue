@@ -17,6 +17,12 @@ const countries = ref([])
 </script>
 
 <template>
-{{ countries }}
+<ol>
+  <li v-for="country in countries">
+    {{ country.name.official }}
+  </li>
+</ol>
+
+
 </template>
 
