@@ -1,74 +1,81 @@
-<script setup>
-// Importamos la función 'ref' de Vue
-import { ref } from 'vue';
-
-// Definimos la URL de la API
-const urlApi = 'https://restcountries.com/v3.1/region/europe';
-
-// Creamos una referencia reactiva llamada 'countries'
-const countries = ref([]);
-
-// Definimos la función 'recuperaCountries'
-function recuperaCountries() {
-  // Hacemos una solicitud fetch a la URL de la API
-  fetch(urlApi)
-    // Parseamos la respuesta a formato JSON
-    .then((respuesta) => respuesta.json())
-    // Manipulamos los datos obtenidos
-    .then((data) => {
-      // Imprimimos los datos en la consola
-      console.log(data);
-      // Asignamos los datos a la referencia reactiva 'countries'
-      countries.value = data;
-    });
-}
-
-// Llamamos a la función 'recuperaCountries' para obtener los datos
-recuperaCountries();
-</script>
-
 <template>
-  <!-- Creamos una tabla con la clase 'my-table' -->
-  <table class="my-table">
-    <thead>
-      <tr>
-        <th>Official name</th>
-        <th>Capital</th>
-        <th>Subregion</th>
-        <th>Population</th>
-        <th>Languages</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Iteramos sobre los países en la referencia reactiva 'countries' -->
-      <tr v-for="country in countries" :key="country.name.common">
-        <!-- Mostramos el nombre oficial del país -->
-        <td>{{ country.name.official }}</td>
-        <!-- Mostramos la capital del país, separando los valores si es un array -->
-        <td>{{ Array.isArray(country.capital) ? country.capital.join(", ") : country.capital }}</td>
-        <!-- Mostramos la subregión del país -->
-        <td>{{ country.subregion }}</td>
-        <!-- Mostramos la población del país -->
-        <td>{{ country.population }}</td>
-        <!-- Mostramos los nombres de los idiomas del país, separando los valores si es un array o un objeto -->
-        <td>{{ getLanguageNames(country.languages) }}</td>
-      </tr>
-    </tbody>
-  </table>
+  <div>
+    <input type="text" v-model="searchTerm" placeholder="Search" />
+    <table class="my-table">
+      <thead>
+        <tr>
+          <th>Official name</th>
+          <th>Capital</th>
+          <th>Subregion</th>
+          <th>Population</th>
+          <th>Languages</th>
+          <th>Flag</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="country in filteredCountries" :key="country.name.common">
+          <td>{{ country.name.official }}</td>
+          <td>{{ getCapital(country.capital) }}</td>
+          <td>{{ country.subregion }}</td>
+          <td>{{ country.population }}</td>
+          <td>{{ getLanguageNames(country.languages) }}</td>
+          <td>
+            <img :src="country.flags.png" alt="Flag" style="max-width: 40px;" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </template>
 
-<script>
-// Definimos la función 'getLanguageNames' para obtener los nombres de los idiomas
+<script setup>
+import { ref, computed } from 'vue';
+
+const urlApi = 'https://restcountries.com/v3.1/region/europe';
+
+const countries = ref([]);
+const searchTerm = ref("");
+
+const recuperaCountries = async () => {
+  try {
+    const response = await fetch(urlApi);
+    const data = await response.json();
+    countries.value = data;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+recuperaCountries();
+
+const filteredCountries = computed(() => {
+  if (searchTerm.value === "") {
+    return countries.value;
+  }
+  const term = searchTerm.value.toLowerCase();
+  return countries.value.filter(country =>
+    country.name.official.toLowerCase().includes(term) ||
+    getCapital(country.capital).toLowerCase().includes(term) ||
+    country.subregion.toLowerCase().includes(term) ||
+    country.population.toString().includes(term) ||
+    getLanguageNames(country.languages).toLowerCase().includes(term)
+  );
+});
+
+const getCapital = (capital) => {
+  if (Array.isArray(capital)) {
+    return capital.join(", ");
+  } else {
+    return capital;
+  }
+}
+
 function getLanguageNames(languages) {
-  // Verificamos si 'languages' es un array
   if (Array.isArray(languages)) {
-    // Si es un array, unimos los elementos con una coma como separador
     return languages.join(", ");
   } else if (typeof languages === "object") {
-    // Si es un objeto, obtenemos los valores y los unimos con una coma como separador
     return Object.values(languages).join(", ");
   } else {
-    // En cualquier otro caso, devolvemos 'languages' sin modificar
     return languages;
   }
 }
